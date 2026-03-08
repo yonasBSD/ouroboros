@@ -1042,6 +1042,15 @@ class InterviewHandler:
                     description="Response to the current interview question",
                     required=False,
                 ),
+                MCPToolParameter(
+                    name="cwd",
+                    type=ToolInputType.STRING,
+                    description=(
+                        "Working directory for brownfield auto-detection. "
+                        "Defaults to the current working directory if not provided."
+                    ),
+                    required=False,
+                ),
             ),
         )
 
@@ -1072,7 +1081,8 @@ class InterviewHandler:
         try:
             # Start new interview
             if initial_context:
-                result = await engine.start_interview(initial_context)
+                cwd = arguments.get("cwd") or os.getcwd()
+                result = await engine.start_interview(initial_context, cwd=cwd)
                 if result.is_err:
                     return Result.err(
                         MCPToolError(

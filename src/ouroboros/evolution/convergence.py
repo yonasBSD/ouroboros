@@ -142,18 +142,18 @@ class ConvergenceCriteria:
                         failed_acs=regressed,
                     )
 
-            # False convergence gate: block if ontology never actually evolved.
-            # When Wonder→Reflect repeatedly fails, the same seed is re-executed
-            # and similarity stays at 1.0 — this is convergence through failure,
-            # not through genuine stabilization.
+            # Evolution gate: withhold convergence if ontology never actually evolved.
+            # When ontology never changes, either Reflect is conservatively
+            # preserving a well-performing ontology, or Wonder/Reflect encountered
+            # errors. Either way, withhold convergence until genuine evolution occurs.
             evolved_count = self._count_evolved_generations(lineage)
             if evolved_count == 0:
                 return ConvergenceSignal(
                     converged=False,
                     reason=(
-                        f"False convergence blocked: similarity {latest_sim:.3f} "
-                        f"but ontology never evolved across {num_gens} generations "
-                        f"(Wonder→Reflect may have failed)"
+                        f"Convergence withheld: similarity {latest_sim:.3f} "
+                        f"but ontology unchanged across {num_gens} generations "
+                        f"(evolution required before convergence is accepted)"
                     ),
                     ontology_similarity=latest_sim,
                     generation=current_gen,
@@ -224,12 +224,13 @@ class ConvergenceCriteria:
         return delta.similarity
 
     def _count_evolved_generations(self, lineage: OntologyLineage) -> int:
-        """Count how many consecutive generation pairs show actual ontology evolution.
+        """Count how many generation pairs show actual ontology evolution.
 
         Returns the number of transitions where similarity < convergence_threshold,
         indicating Wonder→Reflect successfully mutated the ontology.
-        A return of 0 means the ontology never changed — likely due to repeated
-        Wonder/Reflect failures causing the same seed to be re-executed.
+        A return of 0 means the ontology never changed -- either because Reflect
+        conservatively preserved a well-performing ontology, or because
+        Wonder/Reflect encountered errors preventing mutation.
         """
         gens = lineage.generations
         if len(gens) < 2:
